@@ -30,14 +30,21 @@ let state = {
     playbackRate: 1
 };
 
+// Check if device is mobile
+const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// Get canvas container for proper sizing
+const canvasContainer = document.querySelector('.canvas-container');
+
 // Initialize canvas
 function initCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    // Set up canvas background color
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Configure videos for mobile
+    Object.values(videos).forEach(video => {
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+    });
 
     // Get initial frame from first video
     videos.video1.addEventListener('loadedmetadata', () => {
@@ -47,26 +54,56 @@ function initCanvas() {
 
     videos.video1.addEventListener('canplay', () => {
         drawFrameToCanvas(videos.video1);
+        // Update dots after first draw
+        setTimeout(() => createDots(), 100);
     });
 
     videos.video1.load();
 }
 
-// Draw video frame to canvas
+// Store video display dimensions for dot positioning
+let videoDisplayDims = {
+    width: 0,
+    height: 0,
+    offsetX: 0,
+    offsetY: 0
+};
+
+// Draw video frame to canvas with proper aspect ratio
 function drawFrameToCanvas(video) {
     if (video.readyState >= 2) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const containerWidth = canvasContainer.clientWidth;
+        const containerHeight = canvasContainer.clientHeight;
+
+        // Resize canvas to match container
+        canvas.width = containerWidth;
+        canvas.height = containerHeight;
+
+        // Update stored dimensions for dot positioning
+        videoDisplayDims = { width: containerWidth, height: containerHeight, offsetX: 0, offsetY: 0 };
+
+        // Draw video to fill container (will stretch if aspect ratio doesn't match)
+        ctx.drawImage(video, 0, 0, containerWidth, containerHeight);
     }
 }
 
-// Create SVG dots
+// Create SVG dots - position relative to video display area
 function createDots() {
     dotsContainer.innerHTML = '';
 
+    // Set SVG dimensions to match canvas
+    dotsContainer.setAttribute('width', videoDisplayDims.width);
+    dotsContainer.setAttribute('height', videoDisplayDims.height);
+    dotsContainer.setAttribute('viewBox', `0 0 ${videoDisplayDims.width} ${videoDisplayDims.height}`);
+
     DOT_POSITIONS.forEach((pos, index) => {
+        // Scale positions to video display dimensions
+        const scaledX = (pos.x / 1920) * videoDisplayDims.width; // Assuming original positions are based on 1920px width
+        const scaledY = (pos.y / 1080) * videoDisplayDims.height; // Assuming original positions are based on 1080px height
+
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', pos.x);
-        circle.setAttribute('cy', pos.y);
+        circle.setAttribute('cx', scaledX);
+        circle.setAttribute('cy', scaledY);
         circle.setAttribute('r', DOT_RADIUS);
         circle.setAttribute('fill', DOT_COLOR);
         circle.setAttribute('class', 'dot');
@@ -133,6 +170,7 @@ function handleDotClick(videoId, index) {
     const endHandler = () => {
         state.isPlaying = false;
         state.activeVideoId = videoId;
+        state.dotsVisible = false; // Keep dots hidden
 
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
@@ -153,20 +191,12 @@ function handleDotClick(videoId, index) {
 
 // Hide dots
 function hideDots() {
-    const dots = dotsContainer.querySelectorAll('.dot');
-    dots.forEach(dot => {
-        dot.style.opacity = '0';
-        dot.style.pointerEvents = 'none';
-    });
+    dotsContainer.classList.add('hidden');
 }
 
 // Show dots
 function showDots() {
-    const dots = dotsContainer.querySelectorAll('.dot');
-    dots.forEach(dot => {
-        dot.style.opacity = '1';
-        dot.style.pointerEvents = 'auto';
-    });
+    dotsContainer.classList.remove('hidden');
 }
 
 // Handle back button click
@@ -189,6 +219,7 @@ backButton.addEventListener('click', () => {
             activeVideo.removeEventListener('timeupdate', rewindHandler);
             state.isRewinding = false;
             state.isPlaying = false;
+            state.activeVideoId = null; // Reset to initial state
             state.dotsVisible = true;
             showDots();
         }
@@ -207,20 +238,31 @@ backButton.addEventListener('click', () => {
     }, 33);
 });
 
+// Animation loop for continuous rendering
+let animationLoopId = null;
+function animationLoop() {
+    // Redraw current frame only if playing or if we're showing the initial frame
+    if (state.isPlaying && state.activeVideoId) {
+        drawFrameToCanvas(videos[state.activeVideoId]);
+    } else if (!state.activeVideoId && !state.overlayActive) {
+        // Only draw video1 if we're in initial state (no video has been played)
+        drawFrameToCanvas(videos.video1);
+    }
+    animationLoopId = requestAnimationFrame(animationLoop);
+}
+
 // Handle window resize
 window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Recreate dots with new scaling
     createDots();
-
-    // Update dot positions for responsive design
-    DOT_POSITIONS[1].x = window.innerWidth - 200;
-    DOT_POSITIONS[2].x = window.innerWidth / 2;
 });
 
 // Initialize
 initCanvas();
 createDots();
+
+// Start animation loop
+animationLoopId = requestAnimationFrame(animationLoop);
 
 // Draw initial frame on load - add retries
 window.addEventListener('load', () => {

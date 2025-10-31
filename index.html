@@ -12,20 +12,21 @@
         }
 
         body {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            background: #000;
+            margin: 0;
+            padding: 0;
+            background: #fff;
         }
 
         #canvas {
             display: block;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
         }
 
         video {
-            display: none;
+            display: none !important;
+            pointer-events: none !important;
+            -webkit-touch-callout: none;
         }
 
         .dot {
@@ -44,13 +45,13 @@
         /* Overlay styles */
         #overlay {
             position: fixed;
-            top: 0;
+            top: 50%;
             right: 0;
+            transform: translateY(-50%) translateX(100%);
             width: 33.333%;
-            height: 100vh;
+            max-height: 100vh;
             background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(40, 40, 40, 0.95) 100%);
             padding: 60px 40px;
-            transform: translateX(100%);
             transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             z-index: 1000;
             overflow-y: auto;
@@ -58,7 +59,7 @@
         }
 
         #overlay.active {
-            transform: translateX(0);
+            transform: translateY(-50%) translateX(0);
         }
 
         .overlay-content {
@@ -101,20 +102,119 @@
         .back-button:active {
             transform: scale(0.98);
         }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            #overlay {
+                width: 100%;
+                padding: 40px 20px;
+            }
+
+            .overlay-header h2 {
+                font-size: 24px;
+            }
+
+            .overlay-text {
+                font-size: 13px;
+            }
+
+            .back-button {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+        }
+
+        /* Prevent text selection on touch devices */
+        canvas {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
+        }
+
+        svg {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Section styles */
+        .section {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            text-align: center;
+            background: #fff;
+            color: #333;
+            line-height: 1.8;
+        }
+
+        .section h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #000;
+        }
+
+        .section p {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .canvas-wrapper {
+            width: 100%;
+            background: #b2b2b2;
+            padding: 0;
+            margin: 0;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0;
+            aspect-ratio: 960 / 540;
+            background: #000;
+        }
+
+        #dots-container {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            pointer-events: none !important;
+            transition: opacity 0.3s ease;
+        }
+
+        #dots-container.hidden {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
+    <!-- Above section -->
+    <div class="section">
+        <h2>Discover Our Work</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    </div>
+
+    <!-- Canvas section -->
+    <div class="canvas-wrapper">
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+
+            <!-- SVG container for dots -->
+            <svg id="dots-container">
+                <!-- Dots will be added here dynamically -->
+            </svg>
+        </div>
+    </div>
 
     <!-- Videos for overlaying -->
-    <video id="video1" src="videos/c1.mp4" crossorigin="anonymous" preload="metadata"></video>
-    <video id="video2" src="videos/c2.mp4" crossorigin="anonymous" preload="metadata"></video>
-    <video id="video3" src="videos/c3.mp4" crossorigin="anonymous" preload="metadata"></video>
-
-    <!-- SVG container for dots -->
-    <svg id="dots-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
-        <!-- Dots will be added here dynamically -->
-    </svg>
+    <video id="video1" src="videos/c1.mp4" crossorigin="anonymous" preload="metadata" playsinline webkit-playsinline></video>
+    <video id="video2" src="videos/c2.mp4" crossorigin="anonymous" preload="metadata" playsinline webkit-playsinline></video>
+    <video id="video3" src="videos/c3.mp4" crossorigin="anonymous" preload="metadata" playsinline webkit-playsinline></video>
 
     <!-- Overlay panel -->
     <div id="overlay">
@@ -127,6 +227,13 @@
             </div>
             <button class="back-button" id="backButton">Back</button>
         </div>
+    </div>
+
+    <!-- Below section -->
+    <div class="section">
+        <h2>Learn More</h2>
+        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+        <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
     </div>
 
     <script src="script.js"></script>
